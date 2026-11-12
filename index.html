@@ -16,7 +16,7 @@
 }
 *{box-sizing:border-box;margin:0}
 html{scroll-padding-top:calc(70px + env(safe-area-inset-top,0px))}
-body{background:var(--bg);color:var(--txt);font-family:var(--sans);min-height:100%;overflow-x:hidden;
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);min-height:100%;overflow-x:hidden;overflow-y:auto;
   padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body.locked{overflow:hidden}
 .mono{font-family:var(--mono);letter-spacing:.04em}
@@ -32,8 +32,10 @@ body.locked{overflow:hidden}
 #xh.lock i{background:var(--blue);box-shadow:0 0 8px var(--blue)}
 #xh.lock .l{transform:translateX(7px)}#xh.lock .r{transform:translateX(-7px)}
 #xh.lock .t{transform:translateY(7px)}#xh.lock .b{transform:translateY(-7px)}
-#xh.fire{animation:recoil .18s ease-out}
-@keyframes recoil{30%{translate:0 -6px;scale:1.25}}
+/* o recuo anima um invólucro interno (.rc), nunca o #xh, que carrega a posição da mira */
+#xh .rc{position:absolute;left:0;top:0;width:0;height:0}
+#xh.fire .rc{animation:recoil .18s ease-out}
+@keyframes recoil{30%{transform:translateY(-6px) scale(1.25)}}
 @media (pointer:coarse){#xh{opacity:0;transition:opacity .4s}#xh.tap{opacity:1}} /* no celular a mira só aparece onde você toca */
 
 /* ===== Brilho / scanlines que reagem à mira ===== */
@@ -226,7 +228,7 @@ footer{text-align:center;color:var(--mut);font-size:.72rem;padding:30px 0 10px}
 
 <!-- Camadas de efeito -->
 <div id="fx"></div><div id="glow"></div><div id="flash"></div>
-<div id="xh" aria-hidden="true"><i class="h l"></i><i class="h r"></i><i class="v t"></i><i class="v b"></i><i class="dot"></i></div>
+<div id="xh" aria-hidden="true"><b class="rc"><i class="h l"></i><i class="h r"></i><i class="v t"></i><i class="v b"></i><i class="dot"></i></b></div>
 <div id="toast" class="mono"></div>
 
 <!-- ===== Tela inicial: o alvo é o botão "Iniciar Missão" ===== -->
@@ -448,6 +450,12 @@ footer{text-align:center;color:var(--mut);font-size:.72rem;padding:30px 0 10px}
     startRound(); setTimeout(() => i.style.display = 'none', 500);
   }
   $('#skip').addEventListener('click', skip);
+  /* Na intro, rolar a roda, deslizar o dedo ou usar ↓/PageDown também entra. Listeners passivos: nunca bloqueiam a rolagem nativa. */
+  let touchY = null;
+  addEventListener('wheel', e => { if (!entered && e.deltaY > 0) skip(); }, { passive: true });
+  addEventListener('touchstart', e => { touchY = e.touches[0].clientY; }, { passive: true });
+  addEventListener('touchmove', e => { if (!entered && touchY !== null && touchY - e.touches[0].clientY > 30) skip(); }, { passive: true });
+  addEventListener('keydown', e => { if (!entered && (e.code === 'ArrowDown' || e.code === 'PageDown')) skip(); });
 
   /* ============================================================
      4) HUD: relógio de round + barra de vida
